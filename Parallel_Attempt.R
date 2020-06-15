@@ -158,6 +158,7 @@ registerDoParallel(cores=4)
 
 output_results <- list()
 for (j in 1: length(data_list)){
+  print(paste0("Modeling Index Level: ", j))
   output_results[[j]] <- foreach(i = 1:length(data_list[[j]]),
                             .combine = 'rbind',
                             .verbose = FALSE,
