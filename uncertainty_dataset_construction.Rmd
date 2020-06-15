@@ -131,7 +131,9 @@ colnames(res) <- col_vals
 rownames(res) <- row_labs
 output <- t(res)
 
+Sys.time()
 results <- single_series_model(model_data, fact_1, fact_2, file)
+Sys.time()
 head(results)
 ```
 
@@ -141,8 +143,10 @@ single_series_model <- function(model_data, fact_1, fact_2, file){
   
   simple_series <- select(model_data, sales, date)
   
-  mod_xts <- msts(simple_series$sales, seasonal.periods = c(7,365.25))
-  fit <- tbats(mod_xts)
+  #mod_xts <- msts(simple_series$sales, seasonal.periods = c(7,365.25))
+  mod_xts <- msts(simple_series$sales, seasonal.periods = 7)
+  #fit <- tbats(mod_xts)
+  fit <- auto.arima(mod_xts)
   percentiles <- c(50, 67, 95, 99)
   fc <- forecast(fit, h = 28, level = percentiles)
   #plot(fc)
@@ -228,7 +232,9 @@ model_builder <- function(base_data, calendar_data, expected_cols, file){
 
 
 ```{r}
+Sys.time()
 testL1 <- model_builder(L1, calendar, ncol(L1), "validation")
+Sys.time()
 head(testL1)
 testL2 <- model_builder(L2, calendar, ncol(L1), "validation")
 head(testL2)

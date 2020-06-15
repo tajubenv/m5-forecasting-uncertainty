@@ -1,5 +1,6 @@
 # gitignore
 data
+validation_submission.csv
 
 # History files
 .Rhistory
