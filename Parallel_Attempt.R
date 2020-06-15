@@ -130,11 +130,11 @@ L6 <-  data_creator(sales_train_validation, state_id, cat_id)
 L7 <-  data_creator(sales_train_validation, state_id, dept_id)
 L8 <-  data_creator(sales_train_validation, store_id, cat_id)
 L9 <-  data_creator(sales_train_validation, store_id, dept_id)
-#L10 <- data_creator(sales_train_validation, item_id)
-#L11 <- data_creator(sales_train_validation, item_id, state_id)
-#L12 <- data_creator(sales_train_validation, item_id, store_id)
+L10 <- data_creator(sales_train_validation, item_id)
+L11 <- data_creator(sales_train_validation, item_id, state_id)
+L12 <- data_creator(sales_train_validation, item_id, store_id)
 
-data_level_list <- list(L1, L2, L3, L4, L5, L6, L7, L8, L9) #, L10, L11, L12)
+data_level_list <- list(L1, L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12)
 
 calendar <- mutate(calendar, day = str_replace(d, "d_", ""),
                    sporting_event = case_when(event_type_1 == "Sporting" | event_type_2 == "Sporting" ~ 1,
