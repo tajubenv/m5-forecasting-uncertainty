@@ -135,7 +135,7 @@ L11 <- data_creator(sales_train_validation, item_id, state_id)
 L12 <- data_creator(sales_train_validation, item_id, store_id)
 
 data_level_list <- list(L1, L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12)
-
+rm(L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12)
 calendar <- mutate(calendar, day = str_replace(d, "d_", ""),
                    sporting_event = case_when(event_type_1 == "Sporting" | event_type_2 == "Sporting" ~ 1,
                                               TRUE ~ 0),
@@ -149,34 +149,38 @@ calendar <- mutate(calendar, day = str_replace(d, "d_", ""),
   select(day, date)
 
 data_list <- list()
+counter = 1
 for (i in 1:length(data_level_list)){
   
-  data_list[[i]] <- data_builder(data_level_list[[i]], calendar, ncol(L1), "validation")
+  temp <- data_builder(data_level_list[[i]], calendar, ncol(L1), "validation")
+  for (j in 1:length(temp)){
+    data_list[[counter]] <- temp[[j]]
+    counter = counter + 1
+  }
 }
 
+rm(data_level_list)
 registerDoParallel(cores=4)
 
-output_results <- list()
-for (j in 1: length(data_list)){
-  print(paste0("Modeling Index Level: ", j))
-  output_results[[j]] <- foreach(i = 1:length(data_list[[j]]),
-                            .combine = 'rbind',
-                            .verbose = FALSE,
-                            .packages = c('xts', 'forecast', 'dplyr')) %dopar% single_series_model(data_list[[j]][[i]]$data, 
-                                                        data_list[[j]][[i]]$factor_1, 
-                                                        data_list[[j]][[i]]$factor_2, 
-                                                        data_list[[j]][[i]]$file)
-}
 
-
-csv_results <- do.call(rbind, output_results)
+start_time <- Sys.time()
+output_results <- foreach(i = 1:length(data_list),
+                               .combine = 'rbind',
+                               .verbose = FALSE,
+                               .packages = c('xts', 'forecast', 'dplyr')) %dopar% single_series_model(data_list[[i]]$data, 
+                                                                                                      data_list[[i]]$factor_1, 
+                                                                                                      data_list[[i]]$factor_2, 
+                                                                                                      data_list[[i]]$file)
+## Remove to save memory
+#data_list[[8]] <- TRUE
 
 
 end_time <- Sys.time()
 print(end_time - start_time)
 
+#csv_results <- do.call(rbind, output_results)
 
-csv_results <- as.data.frame(csv_results)
+csv_results <- as.data.frame(output_results)
  
 write.csv(csv_results, "validation_submission.csv")
 
