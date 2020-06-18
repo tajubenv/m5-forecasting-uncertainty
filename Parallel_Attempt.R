@@ -104,84 +104,89 @@ data_builder <- function(base_data, calendar_data, expected_cols, file){
   return(results_list)
 }
 
-## Timing for testing:
-start_time <- Sys.time()
-
-
-## IMPORT FILES.
-## Files commented out to save memory
-path <- "data"
-calendar <- read_csv(file.path(path,"calendar.csv"))
-sales_train_evaluation <- read_csv(file.path(path, "sales_train_evaluation.csv"))
-sales_train_validation <- read_csv(file.path(path, "sales_train_validation.csv"))
-sample_submission <- read_csv(file.path(path, "sample_submission.csv"))
-sell_prices <- read_csv(file.path(path, "sell_prices.csv"))
-
-col_tf <- colnames(sales_train_validation) %>% stringr::str_detect("d_")
-vars <- colnames(sales_train_validation)[col_tf]
-
-
-L1 <-  data_creator(sales_train_validation)
-L2 <-  data_creator(sales_train_validation, state_id)
-L3 <-  data_creator(sales_train_validation, store_id)
-L4 <-  data_creator(sales_train_validation, cat_id)
-L5 <-  data_creator(sales_train_validation, dept_id)
-L6 <-  data_creator(sales_train_validation, state_id, cat_id)
-L7 <-  data_creator(sales_train_validation, state_id, dept_id)
-L8 <-  data_creator(sales_train_validation, store_id, cat_id)
-L9 <-  data_creator(sales_train_validation, store_id, dept_id)
-L10 <- data_creator(sales_train_validation, item_id)
-L11 <- data_creator(sales_train_validation, item_id, state_id)
-L12 <- data_creator(sales_train_validation, item_id, store_id)
-
-data_level_list <- list(L1, L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12)
-rm(L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12)
-calendar <- mutate(calendar, day = str_replace(d, "d_", ""),
-                   sporting_event = case_when(event_type_1 == "Sporting" | event_type_2 == "Sporting" ~ 1,
-                                              TRUE ~ 0),
-                   cultural_event = case_when(event_type_1 == "Cultural" | event_type_2 == "Cultural" ~ 1,
-                                              TRUE ~ 0),
-                   national_event = case_when(event_type_1 == "National" | event_type_2 == "National" ~ 1,
-                                              TRUE ~ 0),
-                   religious_event = case_when(event_type_1 == "Religious" | event_type_2 == "Religious" ~ 1,
-                                               TRUE ~ 0)) %>%
-  select(day, wday, date, snap_CA, snap_TX, snap_WI, sporting_event, cultural_event, national_event, religious_event) %>%
-  select(day, date)
-
-data_list <- list()
-counter = 1
-for (i in 1:length(data_level_list)){
+competition_run() <- function(){
+  ## Timing for testing:
+  start_time <- Sys.time()
   
-  temp <- data_builder(data_level_list[[i]], calendar, ncol(L1), "validation")
-  for (j in 1:length(temp)){
-    data_list[[counter]] <- temp[[j]]
-    counter = counter + 1
+  
+  ## IMPORT FILES.
+  ## Files commented out to save memory
+  path <- "data"
+  calendar <- read_csv(file.path(path,"calendar.csv"))
+  sales_train_evaluation <- read_csv(file.path(path, "sales_train_evaluation.csv"))
+  sales_train_validation <- read_csv(file.path(path, "sales_train_validation.csv"))
+  sample_submission <- read_csv(file.path(path, "sample_submission.csv"))
+  sell_prices <- read_csv(file.path(path, "sell_prices.csv"))
+  
+  col_tf <- colnames(sales_train_evaluation) %>% stringr::str_detect("d_")
+  vars <- colnames(sales_train_evaluation)[col_tf]
+  
+  
+  L1 <-  data_creator(sales_train_evaluation)
+  L2 <-  data_creator(sales_train_evaluation, state_id)
+  L3 <-  data_creator(sales_train_evaluation, store_id)
+  L4 <-  data_creator(sales_train_evaluation, cat_id)
+  L5 <-  data_creator(sales_train_evaluation, dept_id)
+  L6 <-  data_creator(sales_train_evaluation, state_id, cat_id)
+  L7 <-  data_creator(sales_train_evaluation, state_id, dept_id)
+  L8 <-  data_creator(sales_train_evaluation, store_id, cat_id)
+  L9 <-  data_creator(sales_train_evaluation, store_id, dept_id)
+  L10 <- data_creator(sales_train_evaluation, item_id)
+  L11 <- data_creator(sales_train_evaluation, state_id, item_id)
+  L12 <- data_creator(sales_train_evaluation, item_id, store_id)
+  
+  data_level_list <- list(L1)#, L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12)
+  rm(L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12)
+  calendar <- mutate(calendar, day = str_replace(d, "d_", ""),
+                     sporting_event = case_when(event_type_1 == "Sporting" | event_type_2 == "Sporting" ~ 1,
+                                                TRUE ~ 0),
+                     cultural_event = case_when(event_type_1 == "Cultural" | event_type_2 == "Cultural" ~ 1,
+                                                TRUE ~ 0),
+                     national_event = case_when(event_type_1 == "National" | event_type_2 == "National" ~ 1,
+                                                TRUE ~ 0),
+                     religious_event = case_when(event_type_1 == "Religious" | event_type_2 == "Religious" ~ 1,
+                                                 TRUE ~ 0)) %>%
+    select(day, wday, date, snap_CA, snap_TX, snap_WI, sporting_event, cultural_event, national_event, religious_event) %>%
+    select(day, date)
+  
+  data_list <- list()
+  counter = 1
+  for (i in 1:length(data_level_list)){
+    
+    temp <- data_builder(data_level_list[[i]], calendar, ncol(L1), "evaluation")
+    for (j in 1:length(temp)){
+      data_list[[counter]] <- temp[[j]]
+      counter = counter + 1
+    }
   }
+  
+  rm(data_level_list)
+  registerDoParallel(cores=4)
+  
+  
+  start_time <- Sys.time()
+  output_results <- foreach(i = 1:length(data_list),
+                                 .combine = 'rbind',
+                                 .verbose = FALSE,
+                                 .packages = c('xts', 'forecast', 'dplyr')) %dopar% single_series_model(data_list[[i]]$data, 
+                                                                                                        data_list[[i]]$factor_1, 
+                                                                                                        data_list[[i]]$factor_2, 
+                                                                                                        data_list[[i]]$file)
+  ## Remove to save memory
+  #data_list[[8]] <- TRUE
+  
+  
+  end_time <- Sys.time()
+  print(end_time - start_time)
+  
+  #csv_results <- do.call(rbind, output_results)
+  
+  csv_results <- as.data.frame(output_results)
+  
+  final_result <- cbind(rownames(csv_results), data.frame(csv_results, row.names=NULL))
+  colnames(data)[1] <- "id"
+   
+  write.csv(csv_results, "evaluation_submission.csv")
 }
-
-rm(data_level_list)
-registerDoParallel(cores=4)
-
-
-start_time <- Sys.time()
-output_results <- foreach(i = 1:length(data_list),
-                               .combine = 'rbind',
-                               .verbose = FALSE,
-                               .packages = c('xts', 'forecast', 'dplyr')) %dopar% single_series_model(data_list[[i]]$data, 
-                                                                                                      data_list[[i]]$factor_1, 
-                                                                                                      data_list[[i]]$factor_2, 
-                                                                                                      data_list[[i]]$file)
-## Remove to save memory
-#data_list[[8]] <- TRUE
-
-
-end_time <- Sys.time()
-print(end_time - start_time)
-
-#csv_results <- do.call(rbind, output_results)
-
-csv_results <- as.data.frame(output_results)
- 
-write.csv(csv_results, "validation_submission.csv")
 
 
